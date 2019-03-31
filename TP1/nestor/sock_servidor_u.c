@@ -157,30 +157,52 @@ int main(int argc, char *argv[])
 
 					 }
 				 }
-					while(1) { 
-		                        memset( buffer, 0, TAM );
-
-		   		                n = read( newsockfd, buffer, TAM-1 );
-		                        if ( n < 0 ) {
+				
+				while(1) 
+				 { 
+				 	/*Recibo mensaje de SINC*/
+					memset( buffer, 0, TAM );
+ 					n = read( newsockfd, buffer, TAM-1 );
+                    if ( n < 0 ) 
+                     {
 						perror( "lectura de socket" );
-		           		                exit(1);
-		                    	}
+   		                exit(1);
+                	 }
 
-		                    	printf( "PROCESO: %d. ", getpid() );
-		                        printf( "Recibí: %s", buffer );
-
-					n = write( newsockfd, "Obtuve su mensaje", 18 );
-					if ( n < 0 ) {
+                	/*Envio el PROMPT*/
+		            n = write( newsockfd, prompt, strlen(prompt) );
+					if ( n < 0 ) 
+					 {
 						perror( "escritura en socket" );
 						exit( 1 );
-					}
-		                        // Verificación de si hay que terminar
+					 }
+
+		            /*Espero por comando*/
+		            memset( buffer, 0, TAM );
+ 				 	n = read( newsockfd, buffer, TAM-1 );
+                    if ( n < 0 ) 
+                     {
+						perror( "lectura de socket" );
+   		                exit(1);
+                	 }
+                    printf( "Recibí el siguiente comando: %s", buffer );
+
+                    /*Respuesta del comando*/
+					n = write( newsockfd, "Ejecute", 8 );
+					if ( n < 0 ) 
+					 {
+						perror( "escritura en socket" );
+						exit( 1 );
+					 }
+		            
+		            /*Verificacion de fin*/
 					buffer[strlen(buffer)-1] = '\0';
-					if( !strcmp( "fin", buffer ) ) {
+					if( !strcmp( "fin", buffer ) ) 
+					 {
 						printf( "PROCESO %d. Como recibí 'fin', termino la ejecución.\n\n", getpid() );
 						exit(0);
-					}
-				   }				
+					 }
+				 }				
 			 }
 		 }
 		else 
