@@ -1,4 +1,5 @@
 *.ipch
 scanning
 *.o
-/.vscode
+.vscode/
+*.out
