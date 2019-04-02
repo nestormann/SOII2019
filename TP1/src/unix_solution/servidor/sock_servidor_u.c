@@ -32,6 +32,16 @@ int main(int argc, char *argv[])
 	char prompt[TAM];
 	sprintf(prompt, "%s@%s:~%s$ ",usuario,host,getcwd(current_directory,100));
 	char buffer[TAM];
+	char file_to_send[100]="";
+	int enviar = 0;
+	char *token;
+	int fd;
+	struct stat file_stat;
+	int sent_bytes = 0;
+	off_t offset;
+	ssize_t len;
+	char file_size[256];
+	int remain_data;
 
     /* Se toma el nombre del socket de la línea de comandos */
     if( argc != 2 ) 
@@ -158,51 +168,142 @@ int main(int argc, char *argv[])
 					 }
 				 }
 				
-				while(1) 
-				 { 
-				 	/*Recibo mensaje de SINC*/
+				/*Procedimiento de descarga*/
+				if(enviar==1)
+					{	
+					printf("%s\n",file_to_send);
+					fd = open(file_to_send, O_RDONLY);
+					if (fd == -1)
+						{
+						fprintf(stderr, "Error opening file --> %s", strerror(errno));
+						n = write( newsockfd,"nofile" , 6);		
+						if ( n < 0 ) 
+							{
+							perror( "escritura en socket" );
+							exit( 1 );
+							}
+						enviar=0;
+						}
+					else
+						{ 
+						if (fstat(fd, &file_stat) < 0)
+							{
+							fprintf(stderr, "Error fstat --> %s", strerror(errno));
+							exit(EXIT_FAILURE);
+							}
+
+						fprintf(stdout, "File Size: \n%zd bytes\n", file_stat.st_size);
+
+						clilen = sizeof(struct sockaddr_in);
+
+						/* Sending file size */
+						sprintf(file_size, "%zd", file_stat.st_size);
+						len = send(newsockfd, file_size, sizeof(file_size), 0);
+
+						if (len < 0)
+							{
+							fprintf(stderr, "Error on sending greetings --> %s", strerror(errno));
+							exit(EXIT_FAILURE);
+							}
+
+						fprintf(stdout, "Server sent %zd bytes for the size\n", len);
+
+						offset = 0;
+						remain_data = file_stat.st_size;
+
+						/* Sending file data */
+						while (((sent_bytes = sendfile(newsockfd, fd, &offset, TAM)) > 0) && (remain_data >= 0) )
+							{
+							remain_data -= sent_bytes;
+							}
+
+						printf("FINALIZO DESCARGA\n");
+						/*Espera confirmacion para finalizar la descarga*/
+						memset( buffer, 0, TAM );
+						n = read( newsockfd, buffer, TAM-1 );
+						if ( n < 0 ) 
+							{
+							perror( "lectura de socket" );
+							exit(1);
+							}
+
+						if(strcmp("done", buffer)==0) 
+							enviar=0;	
+						}
+					}
+
+				if(enviar==0)
+					{
+					/*Recibo mensaje de SINC*/
 					memset( buffer, 0, TAM );
- 					n = read( newsockfd, buffer, TAM-1 );
-                    if ( n < 0 ) 
-                     {
-						perror( "lectura de socket" );
-   		                exit(1);
-                	 }
-
-                	/*Envio el PROMPT*/
-		            n = write( newsockfd, prompt, strlen(prompt) );
+					n = read( newsockfd, buffer, TAM-1 );
 					if ( n < 0 ) 
-					 {
+						{
+						perror( "lectura de socket" );
+						exit(1);
+						}
+					}
+				
+				if(enviar==0)
+				{
+					/*Envio el PROMPT*/
+					n = write( newsockfd, prompt, strlen(prompt) );
+					if ( n < 0 ) 
+						{
 						perror( "escritura en socket" );
 						exit( 1 );
-					 }
+						}	
+				}
 
-		            /*Espero por comando*/
-		            memset( buffer, 0, TAM );
- 				 	n = read( newsockfd, buffer, TAM-1 );
-                    if ( n < 0 ) 
-                     {
-						perror( "lectura de socket" );
-   		                exit(1);
-                	 }
-                    printf( "Recibí el siguiente comando: %s", buffer );
+				/*Espero por comando*/
+				memset( buffer, 0, TAM );
+				n = read( newsockfd, buffer, TAM-1 );
+				if ( n < 0 ) 
+					{
+					perror( "lectura de socket" );
+					exit(1);
+					}
+				printf( "Recibí el siguiente comando: %s\n", buffer );
 
-                    /*Respuesta del comando*/
-					n = write( newsockfd, "Ejecute", 8 );
-					if ( n < 0 ) 
+				/*Intento de ejecucion de comandos*/
+				if(enviar==0)
+				{
+					if(strncmp(buffer,"update firmware.bin",19)==0 || strncmp(buffer,"start scanning",14)==0)
 					 {
-						perror( "escritura en socket" );
-						exit( 1 );
+						printf("Envio actualizacion de firmware\n");
+						enviar=1;
+						getcwd(file_to_send,100);		/*Obtengo el path de descarga*/
+						strtok(buffer, " ");			/*Descarto el primer eslabon*/
+						token=strtok(NULL," ");			/*Obtengo el nombre del archivo a descargar*/
+						sprintf(file_to_send, "%s/%s", current_directory, token);
+						
 					 }
-		            
-		            /*Verificacion de fin*/
-					buffer[strlen(buffer)-1] = '\0';
-					if( !strcmp( "fin", buffer ) ) 
-					 {
+					else if (strncmp(buffer,"obtener telemetria",18)==0) 
+						{
+						printf("Enviando telemetria\n");
+						n = write( newsockfd, "TELEMETRIA", 11 );
+						if ( n < 0 ) 
+							{
+							perror( "escritura en socket" );
+							exit( 1 );
+							}
+						}
+					else if(strncmp(buffer,"fin",3)==0)
+					{
 						printf( "PROCESO %d. Como recibí 'fin', termino la ejecución.\n\n", getpid() );
 						exit(0);
-					 }
-				 }				
+					}
+					else
+					{
+						printf("Comando desconocido\n");
+						n = write( newsockfd, buffer, strlen(buffer));
+						if ( n < 0 ) 
+							{
+							perror( "escritura en socket" );
+							exit( 1 );
+							}
+					}
+			 	 }				
 			 }
 		 }
 		else 

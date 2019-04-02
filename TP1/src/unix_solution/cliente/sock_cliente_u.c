@@ -10,6 +10,7 @@
 #include <sys/un.h>
 
 #define TAM 4096
+#define SOCK_PATH  "../servidor/prueba"
 
 int main( int argc, char *argv[] ) 
  {
@@ -24,6 +25,11 @@ int main( int argc, char *argv[] )
 	char input[TAM];
     char file_path[100]="";
     char current_dir[100]="";
+	int file_size;
+    FILE *received_file;
+    int remain_data = 0;
+    ssize_t len;
+	int descargar=0;
     getcwd(current_dir,100);
 
     /*Se comprueba la sintaxis del comando ingresado, 
@@ -81,7 +87,7 @@ int main( int argc, char *argv[] )
 
 	memset( (char *)&serv_addr, '\0', sizeof(serv_addr) );
 	serv_addr.sun_family = AF_UNIX;
-	strcpy( serv_addr.sun_path, argv[1] );
+	strcpy( serv_addr.sun_path, SOCK_PATH);//argv[1] );
 	servlen = strlen( serv_addr.sun_path) + sizeof(serv_addr.sun_family);
 
 	if ( (sockfd = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0) 
@@ -162,60 +168,116 @@ int main( int argc, char *argv[] )
 				correct_pass=1;
 			 }
 		 }
+		/*Procedimiento de descarga*/
+		if(descargar==1)
+		{
+			/* Receiving file size */
+			memset( input, '\0', TAM );
+			recv(sockfd, input, TAM, 0);
 
-		while(1) 
-		 {
+			if(strncmp(input,"nofile",6)==0)
+			{
+				printf("NO EXISTE EL ARCHIVO SOLICITADO\n");
+				descargar=0;
+			}
+			else
+			{
+				printf("DESCARGANDO\n");
+				file_size = atoi(input);
+				fprintf(stdout, "File size : %d\n", file_size);
 
+				received_file = fopen(file_path, "w");
+				if (received_file == NULL)
+				{
+					fprintf(stderr, "Failed to open file foo --> %s\n", strerror(errno));
+					exit(EXIT_FAILURE);
+				}
+
+				remain_data = file_size;
+				memset( input, '\0', TAM );					
+				while (((len = recv(sockfd, input, TAM, 0)) > 0) && (remain_data >=0))
+				{
+					fwrite(input, sizeof(char), len, received_file);
+					remain_data -= len;
+					if(remain_data==0) 
+						break;
+				}
+				printf("TERMINO DESCARGA\n");
+				fclose(received_file);
+				/*Envio confirmacion de fin de descarga*/
+				n = write( sockfd, "done", 5);
+				if ( n < 0 ) 
+				{
+					perror( "escritura de socket" );
+					exit( 1 );
+				}  
+				descargar=0;
+			}
+		}
+
+		if(descargar==0)
+			{
 			/*Mensaje de sincronizacion*/
 			write( sockfd, "SINC", 5);
-            if ( n < 0 ) 
-             {
-                perror( "escritura de socket" );
-                exit( 1 );
-             }
+			if ( n < 0 ) 
+			{
+				perror( "escritura de socket" );
+				exit( 1 );
+			}
+			}
 
-            /*Recibo e imprimo el prompt*/ 
-			memset( input, '\0', TAM );
+		/*Recibo e imprimo el prompt*/ 
+		memset( input, '\0', TAM );
+		n = read( sockfd, input, TAM );
+		if ( n < 0 ) 
+			{
+			perror( "lectura de socket" );
+			exit( 1 );
+			}
+		printf( "%s", input );
+
+		/*Escritura del comando a ejecutar*/
+		memset( input, '\0', TAM );
+		fgets( input, TAM-1, stdin );
+		write( sockfd, input, strlen(input) );
+		if ( n < 0 ) 
+			{
+			perror( "escritura de socket" );
+			exit( 1 );
+			}
+
+		/*Verifico si el usuario ingreso 'fin'*/
+		input[strlen(input)-1] = '\0';
+		if( !strcmp( "fin", input ) ) 
+			{
+			terminar = 1;
+			}
+
+		/*Verificacion de intento de descargar*/
+		if(strncmp(input,"update firmware.bin",19)==0 || strncmp(input,"start scanning",14)==0)  
+		{
+			descargar = 1;
+			strtok(input, " ");	
+			token=strtok(NULL," ");		/*Nombre del archivo a descargar*/
+			sprintf(file_path, "%s/%s", current_dir, token);
+		}
+		else
+		{	/*Recepcion de salida del servidor*/
+			memset( input, '\0', TAM );					
 			n = read( sockfd, input, TAM );
-            if ( n < 0 ) 
-             {
-                perror( "lectura de socket" );
-                exit( 1 );
-             }
-			printf( "%s", input );
+			if ( n < 0 ) 
+			{
+				perror( "lectura de socket" );
+				exit( 1 );
+			}
+			printf("%s",input);	
+		}
 
-			/*Escritura del comando a ejecutar*/
-			memset( input, '\0', TAM );
-			fgets( input, TAM-1, stdin );
-			write( sockfd, input, strlen(input) );
-            if ( n < 0 ) 
-             {
-                perror( "escritura de socket" );
-                exit( 1 );
-             }
-
-            /*Verifico si el usuario ingreso 'fin'*/
-            input[strlen(input)-1] = '\0';
-            if( !strcmp( "fin", input ) ) 
-             {
-                terminar = 1;
-             }
-
-    		memset( input, '\0', TAM );
-			n = read( sockfd, input, TAM );
-            if ( n < 0 ) 
-             {
-                perror( "lectura de socket" );
-                exit( 1 );
-             }
-            printf( "%s\n", input );
-
-            if( terminar ) 
-             {
-     	       	printf( "Finalizando ejecución\n" );
-            	exit(0);
-             }
-		 }
+		if( terminar ) 
+			{
+			printf( "Finalizando ejecución\n" );
+			exit(0);
+			}
 	 }
 	return 0;
  } 
