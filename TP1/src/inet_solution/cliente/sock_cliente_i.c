@@ -7,6 +7,7 @@
 #include <netdb.h> 
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #define TAM 4096
 
@@ -221,6 +222,9 @@ int main( int argc, char *argv[] )
 		         }
 
 		        remain_data = file_size;
+
+				clock_t start = clock();
+
 		        memset( input, '\0', TAM );					
 		        while (((len = recv(sockfd, input, TAM, 0)) > 0) && (remain_data >=0))
 		         {
@@ -229,7 +233,10 @@ int main( int argc, char *argv[] )
 		            if(remain_data==0) 
 		            	break;
 		         }
-		        printf("TERMINO DESCARGA\n");
+
+				clock_t end = clock();
+				float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+		        printf("TERMINO DESCARGA EN %f segundos\n",seconds);
 		        fclose(received_file);
 		        /*Envio confirmacion de fin de descarga*/
 				n = write( sockfd, "done", 5);

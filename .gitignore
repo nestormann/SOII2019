@@ -3,3 +3,5 @@ scanning
 *.o
 .vscode/
 *.out
+TP1/src/inet_solution/cliente/cliente
+TP1/src/inet_solution/servidor/servidor
