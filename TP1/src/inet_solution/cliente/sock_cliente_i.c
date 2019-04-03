@@ -14,8 +14,12 @@
 int main( int argc, char *argv[] ) 
  {
 	int sockfd, puerto, n;
+	int sock_udp;
+	socklen_t tamano_direccion;
 	struct sockaddr_in serv_addr;
+	struct sockaddr_in dest_addr;
 	struct hostent *server;
+	//struct hostent *server_udp;
 	int terminar = 0;
 	int descargar=0;
 	int correct_input = 0; 										
@@ -98,7 +102,7 @@ int main( int argc, char *argv[] )
 		correct_input=1;
 	 }
 
-	/*Conexion con el puerto del servidor*/
+	/*Conexion con el puerto del servidor TCP*/
 	if ( argc < 3 ) 
 	 {
 		fprintf( stderr, "Uso %s host puerto\n", argv[0]);
@@ -129,6 +133,18 @@ int main( int argc, char *argv[] )
 		perror( "conexion" );
 		exit( 1 );
 	 }
+
+	/*Conexion con el puerto del servidor TCP*/
+	sock_udp = socket( AF_INET, SOCK_DGRAM, 0 );
+	if (sock_udp < 0) {
+		perror( "apertura de socket" );
+		exit( 1 );
+	}
+
+	dest_addr.sin_family = AF_INET;
+	dest_addr.sin_port = htons(puerto+1);
+	dest_addr.sin_addr = *( (struct in_addr *)server->h_addr );
+	memset( &(dest_addr.sin_zero), '\0', 8 );
 
 	while(1) 
 	 {	/*Espera autenticacion del usuario*/
@@ -319,7 +335,19 @@ int main( int argc, char *argv[] )
 				perror( "lectura de socket" );
 				exit( 1 );
 			}
-			printf("%s\n",input);	
+			printf("%s\n",input);
+			
+			if (strncmp(input,"TELEMETRIA",10)==0) 
+			 {
+				printf("Enviando telemetria\n");
+				tamano_direccion = sizeof( dest_addr );
+				n = sendto( sock_udp, (void *)buff, TAM, 0, (struct sockaddr *)&dest_addr, tamano_direccion );
+				if ( n < 0 ) 
+				{
+					perror( "Escritura en socket" );
+					exit( 1 );
+				}
+			 }	
 		}
 	 }
 	return 0;

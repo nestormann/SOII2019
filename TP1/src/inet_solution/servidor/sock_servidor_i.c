@@ -20,9 +20,11 @@
 int main( int argc, char *argv[] ) 
  {
 	int sockfd, puerto;//, stdout_cpy;
+	int sock_udp, puerto_udp;
+	socklen_t tamano_direccion;
 	socklen_t clilen;
 	char buffer[TAM];
-	struct sockaddr_in serv_addr, cli_addr;
+	struct sockaddr_in serv_addr, cli_addr, serv_addr_udp;
 	int n;
 	char usuario[]="nestor";
 	char password[]="parapam";
@@ -51,29 +53,53 @@ int main( int argc, char *argv[] )
 		exit( 1 );
 	 }
 
+	/*Inicializacion socket TCP*/
 	sockfd = socket( AF_INET, SOCK_STREAM, 0);
 	if ( sockfd < 0 ) 
 	 { 
 		perror( " apertura de socket ");
 		exit( 1 );
 	 }
-
 	memset( (char *) &serv_addr, 0, sizeof(serv_addr) );
 	puerto = atoi( argv[1] );
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons( puerto );
 
-	if ( bind(sockfd, ( struct sockaddr *) &serv_addr, sizeof( serv_addr ) ) < 0 ) 
+	if( bind( sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr) ) < 0 ) {
+		perror( "ERROR en binding" );
+		exit( 1 );
+	}
+
+	printf( "Proceso: %d - socket disponible: %d\n", getpid(), ntohs(serv_addr.sin_port) );
+
+	listen( sockfd, 5 );
+	clilen = sizeof( cli_addr );
+
+	/*Inicializacion socket UDP*/
+	sock_udp = socket( AF_INET, SOCK_DGRAM, 0 );
+	if (sock_udp < 0) 
+	 { 
+		perror("ERROR en apertura de socket");
+		exit( 1 );
+	 }
+
+	memset( &serv_addr_udp, 0, sizeof(serv_addr_udp) );
+	puerto_udp = puerto+1;
+	serv_addr_udp.sin_family = AF_INET;
+	serv_addr_udp.sin_addr.s_addr = INADDR_ANY;
+	serv_addr_udp.sin_port = htons( puerto_udp );
+	memset( &(serv_addr_udp.sin_zero), '\0', 8 );
+
+	if ( bind(sock_udp, ( struct sockaddr *) &serv_addr_udp, sizeof( serv_addr_udp ) ) < 0 ) 
 	 {
 		perror( "ligadura" );
 		exit( 1 );
 	 }
+	
+	printf( "Socket disponible: %d\n", ntohs(serv_addr_udp.sin_port) );
 
-    printf( "Proceso: %d - socket disponible: %d\n", getpid(), ntohs(serv_addr.sin_port) );
-
-	listen( sockfd, 5 );
-	clilen = sizeof( cli_addr );
+	tamano_direccion = sizeof( struct sockaddr );
 
 	while( 1 ) 
 	 {	int newsockfd, pid;
@@ -290,13 +316,20 @@ int main( int argc, char *argv[] )
 					 }
 					else if (strncmp(buffer,"obtener telemetria",18)==0) 
 					 {
-						printf("Enviando telemetria\n");
+						printf("Esperando telemetria:\n");
 						n = write( newsockfd, "TELEMETRIA", 11 );
 						if ( n < 0 ) 
 						 {
 							perror( "escritura en socket" );
 							exit( 1 );
 						 }
+						memset( buffer, 0, TAM );
+						n = recvfrom( sock_udp, buffer, TAM-1, 0, (struct sockaddr *)&serv_addr_udp, &tamano_direccion );
+						if ( n < 0 ) {
+							perror( "lectura de socket" );
+							exit( 1 );
+						}
+						printf( "Version: %s\n", buffer );
 					 }
 					else if(strncmp(buffer,"fin",3)==0)
 					{
