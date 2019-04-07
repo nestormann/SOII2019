@@ -129,7 +129,7 @@ int main( int argc, char *argv[] )
 		
 			printf("INGRESE EL USUARIO: ");
 			fgets(buffer,75,stdin);
-			user_verification=strncmp(buffer,usuario,strlen(buffer)-1);
+			user_verification=strncmp(buffer,usuario,strlen(buffer)-1); //&& strlen buffer == strlen usuario
 			printf("INGRESE LA CONTRASEÑA: ");
 			fgets(buffer,75,stdin);
 			pass_verification=strncmp(buffer,password,strlen(buffer)-1);
@@ -359,7 +359,7 @@ int main( int argc, char *argv[] )
 						perror( "lectura de socket" );
 						exit( 1 );
 					}
-					printf( "Version: %s\n", buffer );
+					printf( "%s", buffer );
 				}
 				
 				else

@@ -15,12 +15,13 @@
 #include <sys/sendfile.h>
 #include <dirent.h>
 #include <getopt.h>
+#include <sys/resource.h>
 
 #define TAM 4096
 
 int main( int argc, char *argv[] ) 
  {
-	clock_t start_time = clock(); 	
+	time_t start_time = time(NULL); 	
 	int sockfd, puerto, n;
 	int sock_udp;
 	socklen_t tamano_direccion;
@@ -72,7 +73,7 @@ int main( int argc, char *argv[] )
         fclose(firmware);
 	 }
 
-	puerto = atoi( "4040" );
+	puerto = atoi( argv[1] );
 	sockfd = socket( AF_INET, SOCK_STREAM, 0 );
 	if ( sockfd < 0 ) 
 	 {
@@ -305,11 +306,37 @@ int main( int argc, char *argv[] )
 			else if (strncmp(buffer,"obtener telemetria",18)==0) 
 			{
 				printf("Enviando telemetria\n");
-				clock_t current_time = clock(); 
-				float uptime = (float)(current_time - start_time) / CLOCKS_PER_SEC;	
+				/*UPTIME*/
+				time_t current_time = time(NULL); 
+				int uptime = (int)(current_time - start_time);
+				/*VSIZE*/
+				char vsz[64];
+				FILE *ps;
+				char command[128]="";
+				pid_t pid = getpid();
+				sprintf(command, "ps -Ao vsize,pid | grep %d", pid);
+				ps = popen(command,"r");
+				if (ps == NULL)
+				{
+					fprintf(stderr, "Error opening file --> %s", strerror(errno));
+				}
+				else
+				{
+					fgets(vsz, 255, (FILE*)ps);
+					token=strtok(vsz, " ");
+					printf("%s\n",vsz);
+					fclose(ps);
+				}
+				/*CPU usage*/
+				struct rusage r_usage;
+				getrusage(RUSAGE_SELF, &r_usage);
+				int sCPUusage= r_usage.ru_utime.tv_sec;
+				int usCPUusage= r_usage.ru_utime.tv_usec;
+				char telemetria[4096]="";
 				tamano_direccion = sizeof( dest_addr );
-				sprintf(ver_sat, "%s/%f", ver_sat, uptime);
-				n = sendto( sock_udp, (void *)ver_sat, TAM, 0, (struct sockaddr *)&dest_addr, tamano_direccion );
+				sprintf(telemetria, "Version firmare: %s\nID: %s\nUptime[s]: %d\nCPU usage: %ds %dus\nVSIZE: %s", 
+									ver_sat,id_sat, uptime,sCPUusage,usCPUusage,vsz);
+				n = sendto( sock_udp, (void *)telemetria, TAM, 0, (struct sockaddr *)&dest_addr, tamano_direccion );
 				if ( n < 0 ) 
 				{
 					perror( "Escritura en socket" );
