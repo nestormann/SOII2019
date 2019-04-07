@@ -134,8 +134,8 @@ int main( int argc, char *argv[] )
 			fgets(buffer,75,stdin);
 			pass_verification=strncmp(buffer,password,strlen(buffer)-1);
 			intentos++;
+			printf("Espera de conexion con el satelite\n");
 		} 
-		printf("Espera de conexion con el satelite\n");
 		int newsockfd, pid;
 		newsockfd = accept( sockfd, (struct sockaddr *) &cli_addr, &clilen );
 		if ( newsockfd < 0 ) 
@@ -229,7 +229,7 @@ int main( int argc, char *argv[] )
 					    	enviar=0;
 							if(restart_flag)
 							{
-								printf("fin de conexion\n");
+								printf("Resteciendo conexion\n");
 								exit(0);
 							} 
 						}
@@ -267,7 +267,13 @@ int main( int argc, char *argv[] )
 
 						clock_t start = clock();
 
-						memset( buffer, '\0', TAM );					
+						memset( buffer, '\0', TAM );
+						n = write( newsockfd, "sinc", 5);
+						if ( n < 0 ) 
+						{
+							perror( "escritura en socket" );
+							exit( 1 );
+						}					
 						while (((len = recv(newsockfd, buffer, TAM, 0)) > 0) && (remain_data >=0))
 						{
 							fwrite(buffer, sizeof(char), len, received_file);
@@ -364,15 +370,7 @@ int main( int argc, char *argv[] )
 				
 				else
 				{	
-					/*Recepcion de salida del servidor*/
-					memset( buffer, '\0', TAM );					
-					n = read( newsockfd, buffer, TAM );
-					if ( n < 0 ) 
-					{
-						perror( "lectura de socket" );
-						exit( 1 );
-					}
-					printf("%s\n",buffer);	
+					printf("Comando desconocido\n");	
 				}
 			 }
 		 }

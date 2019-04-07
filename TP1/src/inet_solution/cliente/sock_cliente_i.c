@@ -158,6 +158,16 @@ int main( int argc, char *argv[] )
 
 				        offset = 0;
 				        remain_data = file_stat.st_size;
+						
+						/*Recibo el sinc*/
+						memset( buffer, 0, TAM );
+						n = read( sockfd, buffer, TAM-1 );
+						if ( n < 0 ) 
+						{
+							perror( "lectura de socket" );
+							exit(1);
+						}
+						
 
 				        /* Sending file data */
 				        while (((sent_bytes = sendfile(sockfd, fd, &offset, TAM)) > 0) && (remain_data >= 0) )
@@ -324,7 +334,6 @@ int main( int argc, char *argv[] )
 				{
 					fgets(vsz, 255, (FILE*)ps);
 					token=strtok(vsz, " ");
-					printf("%s\n",vsz);
 					fclose(ps);
 				}
 				/*CPU usage*/
@@ -334,7 +343,7 @@ int main( int argc, char *argv[] )
 				int usCPUusage= r_usage.ru_utime.tv_usec;
 				char telemetria[4096]="";
 				tamano_direccion = sizeof( dest_addr );
-				sprintf(telemetria, "Version firmare: %s\nID: %s\nUptime[s]: %d\nCPU usage: %ds %dus\nVSIZE: %s", 
+				sprintf(telemetria, "Version firmare: %s\nID: %s\nUptime[s]: %d\nCPU usage: %ds %dus\nVSIZE: %s\n", 
 									ver_sat,id_sat, uptime,sCPUusage,usCPUusage,vsz);
 				n = sendto( sock_udp, (void *)telemetria, TAM, 0, (struct sockaddr *)&dest_addr, tamano_direccion );
 				if ( n < 0 ) 
@@ -351,12 +360,6 @@ int main( int argc, char *argv[] )
 			else
 			{
 				printf("Comando desconocido\n");
-				n = write( sockfd, buffer, strlen(buffer));
-				if ( n < 0 ) 
-				{
-					perror( "escritura en socket" );
-					exit( 1 );
-				}
 			}
 		}	
 	 }
