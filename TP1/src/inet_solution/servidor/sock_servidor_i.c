@@ -129,10 +129,10 @@ int main( int argc, char *argv[] )
 		
 			printf("INGRESE EL USUARIO: ");
 			fgets(buffer,75,stdin);
-			user_verification=strncmp(buffer,usuario,strlen(buffer)-1); //&& strlen buffer == strlen usuario
+			user_verification=strncmp(buffer,usuario,strlen(buffer)-1) + (strlen(buffer)-1-strlen(usuario));
 			printf("INGRESE LA CONTRASEÑA: ");
 			fgets(buffer,75,stdin);
-			pass_verification=strncmp(buffer,password,strlen(buffer)-1);
+			pass_verification=strncmp(buffer,password,strlen(buffer)-1) + (strlen(buffer)-1-strlen(password));
 			intentos++;
 			printf("Espera de conexion con el satelite\n");
 		} 

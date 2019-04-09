@@ -17,7 +17,7 @@
 #include <getopt.h>
 #include <sys/resource.h>
 
-#define TAM 4096
+#define TAM 1500
 
 int main( int argc, char *argv[] ) 
  {
@@ -140,12 +140,12 @@ int main( int argc, char *argv[] )
 				            exit(EXIT_FAILURE);
 				         }
 
-				        fprintf(stdout, "File Size: \n%zd bytes\n", file_stat.st_size);
+				        fprintf(stdout, "File Size: \n%ld bytes\n", file_stat.st_size);
 
 				        //clilen = sizeof(struct sockaddr_in);
 
 				         /* Sending file size */
-				        sprintf(file_sizee, "%zd", file_stat.st_size);
+				        sprintf(file_sizee, "%ld", file_stat.st_size);
 				        len = send(sockfd, file_sizee, sizeof(file_sizee), 0);
 
 				        if (len < 0)
@@ -273,7 +273,6 @@ int main( int argc, char *argv[] )
 				perror( "lectura de socket" );
 				exit( 1 );
 			}
-			printf("%s\n",prompt);
 			n = write( sockfd,prompt , strlen(prompt));	
 			if ( n < 0 ) 
 			{
