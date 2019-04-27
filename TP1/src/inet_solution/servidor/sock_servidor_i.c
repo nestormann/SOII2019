@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
+#include <sys/time.h>
 #include <time.h>
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -16,7 +17,7 @@
 #include <dirent.h>
 #include <getopt.h>
 
-#define TAM 4096
+#define TAM 1448 //Tamaño maximo del MTU
 
 int main( int argc, char *argv[] ) 
  {
@@ -182,7 +183,6 @@ int main( int argc, char *argv[] )
 
 				        fprintf(stdout, "File Size: \n%zd bytes\n", file_stat.st_size);
 
-				        //clilen = sizeof(struct sockaddr_in);
 
 				         /* Sending file size */
 				        sprintf(file_sizee, "%zd", file_stat.st_size);
@@ -233,8 +233,6 @@ int main( int argc, char *argv[] )
 								exit(0);
 							} 
 						}
-
-						
 					 }
 				 }
 				
@@ -265,7 +263,9 @@ int main( int argc, char *argv[] )
 
 						remain_data = file_size;
 
-						clock_t start = clock();
+						//clock_t start = clock();
+						struct timespec start, end;
+    					clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
 						memset( buffer, '\0', TAM );
 						n = write( newsockfd, "sinc", 5);
@@ -281,10 +281,17 @@ int main( int argc, char *argv[] )
 							if(remain_data==0) 
 								break;
 						}
+						
+						//clock_t end = clock();
+						clock_gettime(CLOCK_MONOTONIC_RAW, &end);
 
-						clock_t end = clock();
-						float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-						printf("TERMINO DESCARGA EN %f segundos\n",seconds);
+						u_int64_t delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+						u_int64_t total_time_s = delta_us/1000000;
+						u_int64_t total_time_ms = (delta_us%1000000)/1000;
+
+						/*float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+						printf("TERMINO DESCARGA EN %f segundos de clk, ",seconds);*/
+						printf("TERMINO DESCARGA EN %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
 						fclose(received_file);
 						/*Envio confirmacion de fin de descarga*/
 						n = write( newsockfd, "done", 5);
@@ -339,6 +346,7 @@ int main( int argc, char *argv[] )
 					printf( "Finalizando ejecución\n" );
 					exit(0);
 				}
+
 				/*Verificacion de intento de descargar*/
 				if(strncmp(buffer,"start scanning",14)==0)  
 				{

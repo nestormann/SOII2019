@@ -45,7 +45,7 @@ int main( int argc, char *argv[] )
 	char file_to_send[100]="";
 	char current_directory[100]; 				/*Almacenamos el directorio actual*/
 	/*Datos del satelite*/
-    char ver_sat[255] = "1.0";
+    char ver_sat[255]="2.0";
 	char id_sat[5]="R2D2";
 	char *host= (char*) malloc(1024); 
 	int fd;
@@ -60,6 +60,11 @@ int main( int argc, char *argv[] )
 
 	printf("Version del software: %s\n",ver_sat);
 	printf("ID: %s\n", id_sat); 
+	for(size_t i = 0; i < 50000000; i++)
+	{
+		/* code */
+	}
+	
 
 	puerto = atoi( argv[1] );
 	sockfd = socket( AF_INET, SOCK_STREAM, 0 );
