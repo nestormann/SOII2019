@@ -45,7 +45,7 @@ int main( int argc, char *argv[] )
 	char file_to_send[100]="";
 	char current_directory[100]; 				/*Almacenamos el directorio actual*/
 	/*Datos del satelite*/
-    char ver_sat[255]="2.0";
+    char ver_sat[255]="4.0";
 	char id_sat[5]="R2D2";
 	char *host= (char*) malloc(1024); 
 	int fd;
@@ -74,7 +74,7 @@ int main( int argc, char *argv[] )
 		exit( 1 );
 	 }
 
-	server = gethostbyname( "127.0.0.1" );
+	server = gethostbyname( "192.168.10.10" );
 	if (server == NULL) 
 	 {
 		fprintf( stderr,"Error, no existe el host\n" );

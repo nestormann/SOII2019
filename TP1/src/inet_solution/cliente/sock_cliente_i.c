@@ -69,7 +69,7 @@ int main( int argc, char *argv[] )
 		exit( 1 );
 	 }
 
-	server = gethostbyname( "127.0.0.1" );
+	server = gethostbyname( "192.168.10.10" );
 	if (server == NULL) 
 	 {
 		fprintf( stderr,"Error, no existe el host\n" );
