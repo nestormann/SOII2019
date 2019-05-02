@@ -2,16 +2,16 @@ all: solution reader_data_in
 	   
 solution: solution.o 
 ifeq ($(CC),-g)
-	gcc -g -pedantic -Wall -Werror -o solution solution.o `nc-config --cflags --libs`
+	gcc -g -pedantic -Wall -Werror -o solution solution.o `nc-config --cflags --libs` -lpng -ljpeg -lz
 else
-	gcc -pedantic -Wall -Werror -o solution solution.o `nc-config --cflags --libs`
+	gcc -pedantic -Wall -Werror -o solution solution.o `nc-config --cflags --libs` -lpng -ljpeg -lz
 endif
 
 solution.o: solution.c 
 ifeq ($(CC),-g)
-	gcc -g -pedantic -Wall -Werror -c solution.c `nc-config --cflags --libs`
+	gcc -g -pedantic -Wall -Werror -c solution.c `nc-config --cflags --libs` -lpng -ljpeg -lz
 else
-	gcc -pedantic -Wall -Werror -c solution.c `nc-config --cflags --libs`
+	gcc -pedantic -Wall -Werror -c solution.c `nc-config --cflags --libs` -lpng -ljpeg -lz
 endif
 
 reader_data_in: reader_data_in.o
@@ -23,5 +23,5 @@ reader_data_in.o: reader_data_in.c
 clean:
 	rm -f *.o solution
 	rm -f *.o reader_data_in
-	rm data_in.txt
+	rm data_in_img.png
 

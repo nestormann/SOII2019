@@ -23,8 +23,8 @@ DS = Dataset(dataDIR)
 f = DS.variables['CMI']
 print f.shape
 
-h = f[3182:3187,3182:3187]
-print h.shape
+h = f[2180:2185,2180:2185]
+print h.dtype
 print h
 # plt.imshow(h)
 # plt.show()

@@ -1,37 +1,10 @@
+#define _CRT_SECURE_NO_DEPRECATE
+#include <stdio.h>
 
 #include <png.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <netcdf.h>
-#include <sys/resource.h>
-#include <sys/mman.h>
-#include <netcdf_mem.h>
-#include <sys/stat.h>
-#include <assert.h>
-#include "zlib.h"
-
-/* Handle errors by printing an error message and exiting with a
- * non-zero status. */
-#define ERRCODE 2
-#define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(ERRCODE);}
-
-/* nombre del archivo a leer */
-#define FILE_NAME "./asd.nc"
-
-/* Lectura de una matriz de 21696 x 21696 */
-#define NX 21696
-#define NY 21696
-/**
- * Los divisores de 21696 son: 1 , 2 , 3 , 4 , 6 , 8 , 12 , 16 , 24 , 32 , 
- * 48 , 64 , 96 , 113 , 192 , 226 , 339 , 452 , 678 , 904 , 1356 , 1808 , 
- * 2712 , 3616 , 5424 , 7232 , 10848 , 21696
- * */
-#define total_steps 1 
-#define count_val NX/total_steps-1
-
-
-
+#include <stdlib.h>
+#include <stdint.h>
 
 /* A coloured pixel. */
 
@@ -39,7 +12,7 @@ typedef struct {
     // uint8_t red;
     // uint8_t green;
     // uint8_t blue;
-    float alpha;
+    uint8_t alpha;
 } pixel_t;
 
 /* A picture. */
@@ -157,108 +130,38 @@ fopen_failed:
 to take, this returns an integer between 0 and 255 proportional to
 "value" divided by "max". */
 
-static int pix(float value, float max)
+static int pix(int value, int max)
 {
     if (value < 0)
         return 0;
-    return (int)(256.0 *((float)(value) / (float)max));
+    return (int)(256.0 *((double)(value) / (double)max));
 }
 
-
-
-
-int
-main()
+int main()
 {
-    /** 
-     * Obtengo el tamaño del archivo .nc
-     * size of file is in member buffer.st_size
-     * */
+    bitmap_t fruit;
+    int x;
+    int y;
 
-    struct stat buffer;
-    int status;
-    status = stat(FILE_NAME, &buffer);
-    size_t size_file=buffer.st_size;
-    if(status != 0)
-    {
-        printf("Error obteniendo tamaño del archivo .nc\n");
-		exit(EXIT_FAILURE);
-    }
-    else
-    {
-        printf("Tamaño de %s: %ld bytes\n",FILE_NAME,size_file);
-    }
-    
-    int ncid, varid;
-    float *data_in = malloc(NX * NY * sizeof(float));
-
-    int retval;
-
-    if ((retval = nc_open(FILE_NAME, NC_NOWRITE, &ncid)))
-        ERR(retval);
-    
-    /* Obtenemos elvarID de la variable CMI. */
-    if ((retval = nc_inq_varid(ncid, "CMI", &varid)))
-        ERR(retval);
-
-    /**
-     * Leemos la matriz.
-     * start indica la cantidad de filas (NY)
-     * count indica la cantidad de columnas(NX)
-     * Escribo el arreglo secuencialmente. 
-     * */
-    static size_t start[2]={0,0};
-    static size_t count[2]={count_val,count_val};
-    printf("Primera data_in[%ld][%ld] hasta data_in[%ld][%ld]\n",start[0],start[1],
-                                                                start[0]+count[0],start[1]+count[1]);
-    if ((retval = nc_get_vara_float(ncid, varid,start,count, data_in)))
-        ERR(retval);
-
-    /**
-     * el desarrollo acá 
-     * */
-
-    bitmap_t data_in_img;
     /* Create an image. */
 
-    data_in_img.width = NX;
-    data_in_img.height = NY;
+    fruit.width = 100;
+    fruit.height = 100;
 
-    data_in_img.pixels = calloc(sizeof(pixel_t), data_in_img.width * data_in_img.height);
+    fruit.pixels = calloc(sizeof(pixel_t), fruit.width * fruit.height);
 
-    for (int y = 0; y < data_in_img.height; y++) 
-    {
-        for (int x = 0; x < data_in_img.width; x++) 
-        {
-            pixel_t * pixel = pixel_at(&data_in_img, x, y);
-            pixel->alpha = pix(data_in[x+y*NX], 3832.0);
+    for (y = 0; y < fruit.height; y++) {
+        for (x = 0; x < fruit.width; x++) {
+            pixel_t * pixel = pixel_at(&fruit, x, y);
+            // pixel->red = 255;
+            // pixel->green = pix(y, fruit.height);
+            pixel->alpha = pix(x, fruit.width);
         }
     }
 
-    /* Write the image to a file 'data_in_img.png'. */
+    /* Write the image to a file 'fruit.png'. */
 
-    save_png_to_file(&data_in_img, "data_in_img.png");
-
-
-    /* Se cierra el archivo y liberan los recursos*/
-    if ((retval = nc_close(ncid)))
-        ERR(retval);  
+    save_png_to_file(&fruit, "fruit.png");
 
     return 0;
 }
-
-
-    /**
-    //  * Cual es el valor maximoooo
-    //  * 
-    //  * */
-    // float maximum = data_in[0];
- 
-    // for (int c = 1; c < NX*NY; c++)
-    // {
-    //     if (data_in[c] > maximum)
-    //     {
-    //         maximum  = data_in[c];
-    //     }
-    // }
-    // printf("Maximum value is %f.\n", maximum);
