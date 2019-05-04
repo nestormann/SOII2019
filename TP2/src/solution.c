@@ -11,6 +11,10 @@
 #include <assert.h>
 #include "zlib.h"
 
+#ifdef NAN
+/* NAN is supported */
+#endif
+
 /* Handle errors by printing an error message and exiting with a
  * non-zero status. */
 #define ERRCODE 2
@@ -29,9 +33,6 @@
  * */
 #define total_steps 1 
 #define count_val NX/total_steps-1
-
-
-
 
 /* A coloured pixel. */
 
@@ -55,7 +56,7 @@ typedef struct {
 
 static pixel_t * pixel_at(bitmap_t * bitmap, int x, int y)
 {
-    return bitmap->pixels + bitmap->width * y + x;
+    return bitmap->pixels + y + bitmap->height * x;
 }
 
 /* Write "bitmap" to a PNG file specified by "path"; returns 0 on
@@ -165,8 +166,6 @@ static int pix(float value, float max)
 }
 
 
-
-
 int
 main()
 {
@@ -215,30 +214,60 @@ main()
         ERR(retval);
 
     /**
-     * el desarrollo acá 
+     * imprimo la imagen aca 
      * */
-
     bitmap_t data_in_img;
     /* Create an image. */
-
     data_in_img.width = NX;
     data_in_img.height = NY;
-
     data_in_img.pixels = calloc(sizeof(pixel_t), data_in_img.width * data_in_img.height);
-
     for (int y = 0; y < data_in_img.height; y++) 
     {
         for (int x = 0; x < data_in_img.width; x++) 
         {
             pixel_t * pixel = pixel_at(&data_in_img, x, y);
-            pixel->alpha = pix(data_in[x+y*NX], 3832.0);
+            pixel->alpha = pix(data_in[x+y*NY], 3832.0);
         }
     }
-
     /* Write the image to a file 'data_in_img.png'. */
-
     save_png_to_file(&data_in_img, "data_in_img.png");
 
+    /**
+     * Convolucion
+     * */
+    float kernel[3][3] = {{-1,-1,-1},{-1,8,-1},{-1,-1,-1}};
+    // float data_in[] = {10,2,2,2,2,2,10,2,2,2,2,2,10,2,2,2,2,2,10,2,2,2,2,2,10};
+    float *convolution = malloc((NX-2) * (NY-2) * sizeof(float));
+    for(int i=1; i < NX-1; i++)              
+    {   
+        for(int j=1; j < NY-1; j++)
+        {
+            convolution[(i-1)*(NY-2)+(j-1)] =   data_in[(i-1)*NY+(j-1)]*kernel[0][0]+
+                                                data_in[(i-1)*NY+(j)]*kernel[0][1]+
+                                                data_in[(i-1)*NY+(j+1)]*kernel[0][2]+
+                                                data_in[(i)*NY+(j-1)]*kernel[1][0]+
+                                                data_in[(i)*NY+(j)]*kernel[1][1]+
+                                                data_in[(i)*NY+(j+1)]*kernel[1][2]+
+                                                data_in[(i+1)*NY+(j-1)]*kernel[2][0]+
+                                                data_in[(i+1)*NY+(j)]*kernel[2][1]+
+                                                data_in[(i+1)*NY+(j+1)]*kernel[2][2];               
+        }
+    }
+    bitmap_t convolution_img;
+    /* Create an image. */
+    convolution_img.width = NX-2;
+    convolution_img.height = NY-2;
+    convolution_img.pixels = calloc(sizeof(pixel_t), convolution_img.width * convolution_img.height);
+    for (int y = 0; y < convolution_img.height; y++) 
+    {
+        for (int x = 0; x < convolution_img.width; x++) 
+        {
+            pixel_t * pixel = pixel_at(&convolution_img, x, y);
+            pixel->alpha = pix(convolution[x+y*(NY-2)], 3832.0);
+        }
+    }
+    /* Write the image to a file 'convolution_img.png'. */
+    save_png_to_file(&convolution_img, "convolution_img.png");
 
     /* Se cierra el archivo y liberan los recursos*/
     if ((retval = nc_close(ncid)))
@@ -262,3 +291,7 @@ main()
     //     }
     // }
     // printf("Maximum value is %f.\n", maximum);
+
+    // find center position of kernel (half of kernel size)
+
+
