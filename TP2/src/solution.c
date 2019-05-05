@@ -1,19 +1,13 @@
-
 #include <png.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <netcdf.h>
-#include <sys/resource.h>
-#include <sys/mman.h>
 #include <netcdf_mem.h>
 #include <sys/stat.h>
 #include <assert.h>
-#include <sys/time.h>
 #include <time.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <getopt.h>
+#include <omp.h>
 #include "zlib.h"
 
 #ifdef NAN
@@ -39,136 +33,162 @@
 #define total_steps 1 
 #define count_val NX/total_steps
 
-// /* A coloured pixel. */
+/* A coloured pixel. */
+typedef struct 
+{
+    // uint8_t red;
+    // uint8_t green;
+    // uint8_t blue;
+    float alpha;
+} pixel_t;
 
-// typedef struct {
-//     // uint8_t red;
-//     // uint8_t green;
-//     // uint8_t blue;
-//     float alpha;
-// } pixel_t;
+/* A picture. */
+typedef struct 
+{
+    pixel_t *pixels;
+    size_t width;
+    size_t height;
+} bitmap_t;
 
-// /* A picture. */
+/* Given "bitmap", this returns the pixel of bitmap at the point
+("x", "y"). */
+static pixel_t * pixel_at(bitmap_t * bitmap, int x, int y)
+{
+    return bitmap->pixels + y + bitmap->height * x;
+}
 
-// typedef struct {
-//     pixel_t *pixels;
-//     size_t width;
-//     size_t height;
-// } bitmap_t;
+/* Write "bitmap" to a PNG file specified by "path"; returns 0 on
+success, non-zero on error. */
+static int save_png_to_file(bitmap_t *bitmap, const char *path)
+{
+    FILE * fp;
+    png_structp png_ptr = NULL;
+    png_infop info_ptr = NULL;
+    size_t x, y;
+    png_byte ** row_pointers = NULL;
+    /* "status" contains the return value of this function. At first
+    it is set to a value which means 'failure'. When the routine
+    has finished its work, it is set to a value which means
+    'success'. */
+    int status = -1;
+    /* The following number is set by trial and error only. I cannot
+    see where it it is documented in the libpng manual.
+    */
+    int pixel_size = 4;
+    int depth = 8;
 
-// /* Given "bitmap", this returns the pixel of bitmap at the point
-// ("x", "y"). */
+    fp = fopen(path, "wb");
+    if (!fp) {
+        goto fopen_failed;
+    }
 
-// static pixel_t * pixel_at(bitmap_t * bitmap, int x, int y)
-// {
-//     return bitmap->pixels + y + bitmap->height * x;
-// }
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (png_ptr == NULL) {
+        goto png_create_write_struct_failed;
+    }
 
-// /* Write "bitmap" to a PNG file specified by "path"; returns 0 on
-// success, non-zero on error. */
+    info_ptr = png_create_info_struct(png_ptr);
+    if (info_ptr == NULL) {
+        goto png_create_info_struct_failed;
+    }
 
-// static int save_png_to_file(bitmap_t *bitmap, const char *path)
-// {
-//     FILE * fp;
-//     png_structp png_ptr = NULL;
-//     png_infop info_ptr = NULL;
-//     size_t x, y;
-//     png_byte ** row_pointers = NULL;
-//     /* "status" contains the return value of this function. At first
-//     it is set to a value which means 'failure'. When the routine
-//     has finished its work, it is set to a value which means
-//     'success'. */
-//     int status = -1;
-//     /* The following number is set by trial and error only. I cannot
-//     see where it it is documented in the libpng manual.
-//     */
-//     int pixel_size = 4;
-//     int depth = 8;
+    /* Set up error handling. */
 
-//     fp = fopen(path, "wb");
-//     if (!fp) {
-//         goto fopen_failed;
-//     }
+    if (setjmp(png_jmpbuf(png_ptr))) {
+        goto png_failure;
+    }
 
-//     png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-//     if (png_ptr == NULL) {
-//         goto png_create_write_struct_failed;
-//     }
+    /* Set image attributes. */
 
-//     info_ptr = png_create_info_struct(png_ptr);
-//     if (info_ptr == NULL) {
-//         goto png_create_info_struct_failed;
-//     }
+    png_set_IHDR(png_ptr,
+        info_ptr,
+        bitmap->width,
+        bitmap->height,
+        depth,
+        PNG_COLOR_TYPE_GRAY,
+        PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT);
 
-//     /* Set up error handling. */
+    /* Initialize rows of PNG. */
 
-//     if (setjmp(png_jmpbuf(png_ptr))) {
-//         goto png_failure;
-//     }
+    row_pointers = png_malloc(png_ptr, bitmap->height * sizeof(png_byte *));
+    for (y = 0; y < bitmap->height; ++y) {
+        png_byte *row =
+            png_malloc(png_ptr, sizeof(uint8_t) * bitmap->width * pixel_size);
+        row_pointers[y] = row;
+        for (x = 0; x < bitmap->width; ++x) {
+            pixel_t * pixel = pixel_at(bitmap, x, y);
+            // *row++ = pixel->red;
+            // *row++ = pixel->green;
+            // *row++ = pixel->blue;
+            *row++ = pixel->alpha;
+        }
+    }
 
-//     /* Set image attributes. */
+    /* Write the image data to "fp". */
 
-//     png_set_IHDR(png_ptr,
-//         info_ptr,
-//         bitmap->width,
-//         bitmap->height,
-//         depth,
-//         PNG_COLOR_TYPE_GRAY,
-//         PNG_INTERLACE_NONE,
-//         PNG_COMPRESSION_TYPE_DEFAULT,
-//         PNG_FILTER_TYPE_DEFAULT);
+    png_init_io(png_ptr, fp);
+    png_set_rows(png_ptr, info_ptr, row_pointers);
+    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
 
-//     /* Initialize rows of PNG. */
+    /* The routine has successfully written the file, so we set
+    "status" to a value which indicates success. */
 
-//     row_pointers = png_malloc(png_ptr, bitmap->height * sizeof(png_byte *));
-//     for (y = 0; y < bitmap->height; ++y) {
-//         png_byte *row =
-//             png_malloc(png_ptr, sizeof(uint8_t) * bitmap->width * pixel_size);
-//         row_pointers[y] = row;
-//         for (x = 0; x < bitmap->width; ++x) {
-//             pixel_t * pixel = pixel_at(bitmap, x, y);
-//             // *row++ = pixel->red;
-//             // *row++ = pixel->green;
-//             // *row++ = pixel->blue;
-//             *row++ = pixel->alpha;
-//         }
-//     }
+    status = 0;
 
-//     /* Write the image data to "fp". */
+    for (y = 0; y < bitmap->height; y++) {
+        png_free(png_ptr, row_pointers[y]);
+    }
+    png_free(png_ptr, row_pointers);
 
-//     png_init_io(png_ptr, fp);
-//     png_set_rows(png_ptr, info_ptr, row_pointers);
-//     png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+    png_failure:
+    png_create_info_struct_failed:
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+    png_create_write_struct_failed:
+        fclose(fp);
+    fopen_failed:
+        return status;
+}
 
-//     /* The routine has successfully written the file, so we set
-//     "status" to a value which indicates success. */
+/* Given "value" and "max", the maximum value which we expect "value"
+to take, this returns an integer between 0 and 255 proportional to
+"value" divided by "max". */
+static int pix(float value, float max)
+{
+    if (value < 0)
+        return 0;
+    return (int)(256.0 *((float)(value) / (float)max));
+}
 
-//     status = 0;
-
-//     for (y = 0; y < bitmap->height; y++) {
-//         png_free(png_ptr, row_pointers[y]);
-//     }
-//     png_free(png_ptr, row_pointers);
-
-// png_failure:
-// png_create_info_struct_failed:
-//     png_destroy_write_struct(&png_ptr, &info_ptr);
-// png_create_write_struct_failed:
-//     fclose(fp);
-// fopen_failed:
-//     return status;
-// }
-
-// /* Given "value" and "max", the maximum value which we expect "value"
-// to take, this returns an integer between 0 and 255 proportional to
-// "value" divided by "max". */
-
-// static int pix(float value, float max)
-// {
-//     if (value < 0)
-//         return 0;
-//     return (int)(256.0 *((float)(value) / (float)max));
-// }
+void imprimir(int width, int height, char * nombre_archivo,float* matriz_to_print, u_int16_t maximo)
+{
+    /**
+     * imprimo la imagen aca 
+     * */
+    struct timespec starting, end;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &starting);
+    bitmap_t img_bitmap;
+    /* Create an image. */
+    img_bitmap.width = width;
+    img_bitmap.height = height;
+    img_bitmap.pixels = calloc(sizeof(pixel_t), img_bitmap.width * img_bitmap.height);
+    for (int y = 0; y < img_bitmap.height; y++) 
+    {
+        for (int x = 0; x < img_bitmap.width; x++) 
+        {
+            pixel_t * pixel = pixel_at(&img_bitmap, x, y);
+            pixel->alpha = pix(matriz_to_print[x+y*width], maximo);
+        }
+    }
+    /* Write the image to a file 'img_bitmap.png'. */
+    save_png_to_file(&img_bitmap, nombre_archivo);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    u_int64_t delta_us = (end.tv_sec - starting.tv_sec) * 1000000 + (end.tv_nsec - starting.tv_nsec) / 1000;
+    u_int64_t total_time_s = delta_us/1000000;
+    u_int64_t total_time_ms = (delta_us%1000000)/1000;
+    printf("FINALIZO IMPRESION EN: %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
+}
 
 int
 main()
@@ -178,6 +198,7 @@ main()
      * size of file is in member buffer.st_size
      * */
 
+    omp_set_num_threads(4);
     struct stat buffer;
     struct timespec starting, end;
     int status;
@@ -230,30 +251,7 @@ main()
     //     if(data_in[i]==-1.0) data_in[i]=(float)0.0/0.0;
     // }
     
-    // /**
-    //  * imprimo la imagen aca 
-    //  * */
-    // clock_gettime(CLOCK_MONOTONIC_RAW, &starting);
-    // bitmap_t data_in_img;
-    // /* Create an image. */
-    // data_in_img.width = NX;
-    // data_in_img.height = NY;
-    // data_in_img.pixels = calloc(sizeof(pixel_t), data_in_img.width * data_in_img.height);
-    // for (int y = 0; y < data_in_img.height; y++) 
-    // {
-    //     for (int x = 0; x < data_in_img.width; x++) 
-    //     {
-    //         pixel_t * pixel = pixel_at(&data_in_img, x, y);
-    //         pixel->alpha = pix(data_in[x+y*NY], 3832.0);
-    //     }
-    // }
-    // /* Write the image to a file 'data_in_img.png'. */
-    // save_png_to_file(&data_in_img, "data_in_img.png");
-    // clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-    // delta_us = (end.tv_sec - starting.tv_sec) * 1000000 + (end.tv_nsec - starting.tv_nsec) / 1000;
-    // total_time_s = delta_us/1000000;
-    // total_time_ms = (delta_us%1000000)/1000;
-    // printf("IMAGEN ORIGINAL: EN %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
+    imprimir(NX, NY, "data_in_img.png", data_in, 3832);
 
     /**
      * Convolucion
@@ -262,19 +260,23 @@ main()
     float *convolution = malloc((NX-2) * (NY-2) * sizeof(float));
     
     clock_gettime(CLOCK_MONOTONIC_RAW, &starting);
-	for(int i=1; i < NX-1; i++)              
-    {   
-        for(int j=1; j < NY-1; j++)
-        {
-            convolution[(i-1)*(NY-2)+(j-1)] =   data_in[(i-1)*NY+(j-1)]*kernel[0][0]+
-                                                data_in[(i-1)*NY+(j)]*kernel[0][1]+
-                                                data_in[(i-1)*NY+(j+1)]*kernel[0][2]+
-                                                data_in[(i)*NY+(j-1)]*kernel[1][0]+
-                                                data_in[(i)*NY+(j)]*kernel[1][1]+
-                                                data_in[(i)*NY+(j+1)]*kernel[1][2]+
-                                                data_in[(i+1)*NY+(j-1)]*kernel[2][0]+
-                                                data_in[(i+1)*NY+(j)]*kernel[2][1]+
-                                                data_in[(i+1)*NY+(j+1)]*kernel[2][2];               
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for(int i=1; i < NX-1; i++)              
+        {   
+            for(int j=1; j < NY-1; j++)
+            {
+                convolution[(i-1)*(NY-2)+(j-1)] =   data_in[(i-1)*NY+(j-1)]*kernel[0][0]+
+                                                    data_in[(i-1)*NY+(j)]*kernel[0][1]+
+                                                    data_in[(i-1)*NY+(j+1)]*kernel[0][2]+
+                                                    data_in[(i)*NY+(j-1)]*kernel[1][0]+
+                                                    data_in[(i)*NY+(j)]*kernel[1][1]+
+                                                    data_in[(i)*NY+(j+1)]*kernel[1][2]+
+                                                    data_in[(i+1)*NY+(j-1)]*kernel[2][0]+
+                                                    data_in[(i+1)*NY+(j)]*kernel[2][1]+
+                                                    data_in[(i+1)*NY+(j+1)]*kernel[2][2];               
+            }
         }
     }
 	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
@@ -283,40 +285,8 @@ main()
     total_time_ms = (delta_us%1000000)/1000;
     printf("CONVOLUCION: EN %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
 
-    for (int y = 10000; y < 10005; y++) 
-    {
-        for (int x = 10000; x < 10005; x++) 
-        {
-            printf("%f  ",convolution[y*(NX-2)+x]);
-        }
-        printf("\n");
-    }
-
+    imprimir(NX-2, NY-2, "convolution_img.png", convolution, 5743);
     
-    // clock_gettime(CLOCK_MONOTONIC_RAW, &starting);
-	// bitmap_t convolution_img;
-    // /* Create an image. */
-    // convolution_img.width = NX-2;
-    // convolution_img.height = NY-2;
-    // convolution_img.pixels = calloc(sizeof(pixel_t), convolution_img.width * convolution_img.height);
-    // for (int y = 0; y < convolution_img.height; y++) 
-    // {
-    //     for (int x = 0; x < convolution_img.width; x++) 
-    //     {
-    //         pixel_t * pixel = pixel_at(&convolution_img, x, y);
-    //         pixel->alpha = pix(convolution[x+y*(NY-2)], 5743.0);
-    //     }
-    // }
-    // /* Write the image to a file 'convolution_img.png'. */
-    // save_png_to_file(&convolution_img, "convolution_img.png");
-	// clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-    // delta_us = (end.tv_sec - starting.tv_sec) * 1000000 + (end.tv_nsec - starting.tv_nsec) / 1000;
-    // total_time_s = delta_us/1000000;
-    // total_time_ms = (delta_us%1000000)/1000;
-    // printf("IMAGEN CONVOLUCION: EN %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
-    
-    
-
     /* Se cierra el archivo y liberan los recursos*/
     if ((retval = nc_close(ncid)))
         ERR(retval);  
