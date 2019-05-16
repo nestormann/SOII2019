@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <png.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -32,6 +34,7 @@
  * */
 #define total_steps 1 
 #define count_val NX/total_steps
+#define MAX_NUM_THREADS 130 
 
 /* A coloured pixel. */
 typedef struct 
@@ -190,79 +193,13 @@ void imprimir(int width, int height, char * nombre_archivo,float* matriz_to_prin
     printf("FINALIZO IMPRESION EN: %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
 }
 
-int
-main()
+float * convolution_function(float * data_in, float kernel[3][3],int num_threads)
 {
-    /** 
-     * Obtengo el tamaño del archivo .nc
-     * size of file is in member buffer.st_size
-     * */
-
-    omp_set_num_threads(4);
-    struct stat buffer;
-    struct timespec starting, end;
-    int status;
-    status = stat(FILE_NAME, &buffer);
-    size_t size_file=buffer.st_size;
-    if(status != 0)
-    {
-        printf("Error obteniendo tamaño del archivo .nc\n");
-		exit(EXIT_FAILURE);
-    }
-    else
-    {
-        printf("Tamaño de %s: %ld bytes\n",FILE_NAME,size_file);
-    }
-    
-    int ncid, varid;
-    float *data_in = malloc(NX * NY * sizeof(float));
-
-    int retval;
-
-    if ((retval = nc_open(FILE_NAME, NC_NOWRITE, &ncid)))
-        ERR(retval);
-    
-    /* Obtenemos elvarID de la variable CMI. */
-    if ((retval = nc_inq_varid(ncid, "CMI", &varid)))
-        ERR(retval);
-
-    /**
-     * Leemos la matriz.
-     * start indica la cantidad de filas (NY)
-     * count indica la cantidad de columnas(NX)
-     * Escribo el arreglo secuencialmente. 
-     * */
-    static size_t start[2]={0,0};
-    static size_t count[2]={count_val,count_val};
-    clock_gettime(CLOCK_MONOTONIC_RAW, &starting);
-
-    printf("Primera data_in[%ld][%ld] hasta data_in[%ld][%ld]\n",start[0],start[1],
-                                                                start[0]+count[0],start[1]+count[1]);
-    if ((retval = nc_get_vara_float(ncid, varid,start,count, data_in)))
-        ERR(retval);
-    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-    u_int64_t delta_us = (end.tv_sec - starting.tv_sec) * 1000000 + (end.tv_nsec - starting.tv_nsec) / 1000;
-    u_int64_t total_time_s = delta_us/1000000;
-    u_int64_t total_time_ms = (delta_us%1000000)/1000;
-    printf("CARGAR DATOS DE CMI: EN %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
-
-    // for(size_t i = 0; i < NX*NY; i++)
-    // {
-    //     if(data_in[i]==-1.0) data_in[i]=(float)0.0/0.0;
-    // }
-    
-    imprimir(NX, NY, "data_in_img.png", data_in, 3832);
-
-    /**
-     * Convolucion
-     * */
-    float kernel[3][3] = {{-1,-1,-1},{-1,8,-1},{-1,-1,-1}};
     float *convolution = malloc((NX-2) * (NY-2) * sizeof(float));
-    
-    clock_gettime(CLOCK_MONOTONIC_RAW, &starting);
+    double start_time = omp_get_wtime();
     #pragma omp parallel
     {
-        #pragma omp for
+        #pragma omp parallel for
         for(int i=1; i < NX-1; i++)              
         {   
             for(int j=1; j < NY-1; j++)
@@ -279,17 +216,101 @@ main()
             }
         }
     }
-	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-    delta_us = (end.tv_sec - starting.tv_sec) * 1000000 + (end.tv_nsec - starting.tv_nsec) / 1000;
-    total_time_s = delta_us/1000000;
-    total_time_ms = (delta_us%1000000)/1000;
-    printf("CONVOLUCION: EN %lds %ldms %ldus\n",total_time_s, total_time_ms, delta_us%1000);
+    double time = omp_get_wtime() - start_time;
+    printf("time: %f con %d hilos\n", time,num_threads);
+    return convolution;
+}
+
+int main(int argc, char *argv[])
+{
+    /*
+	 *Determino el numero de hilos con el que se va a ejecutar
+ 	*/
+ 	int num_threads = 1;
+ 	if(argc>1)
+ 	 {
+	 	if(atoi(argv[1]) != 0)
+	 	 {
+			int aux = atoi(argv[1]);
+			if((aux > 0) && (aux < MAX_NUM_THREADS))
+			 {
+				num_threads = aux;
+			 }
+			else
+			 {
+				num_threads = omp_get_max_threads();
+			 }
+		 }
+	 }
+	omp_set_num_threads(num_threads);
+    
+
+    /** 
+     * Obtengo el tamaño del archivo .nc
+     * size of file is in member buffer.st_size
+     * */
+    struct stat buffer;
+    int status;
+    status = stat(FILE_NAME, &buffer);
+    if(status != 0)
+    {
+        printf("Error obteniendo tamaño del archivo .nc\n");
+		exit(EXIT_FAILURE);
+    }
+    
+    int ncid, varid;
+    float *data_in; 
+    int retval;
+    if ((retval = nc_open(FILE_NAME, NC_NOWRITE, &ncid)))
+            ERR(retval);
+    data_in=malloc(NX * NY * sizeof(float));
+    
+    /* Obtenemos elvarID de la variable CMI. */
+    if ((retval = nc_inq_varid(ncid, "CMI", &varid)))
+        ERR(retval);
+
+    /**
+     * Leemos la matriz.
+     * start indica la cantidad de filas (NY)
+     * count indica la cantidad de columnas(NX)
+     * Escribo el arreglo secuencialmente. 
+     * */
+    static size_t start[2]={0,0};
+    static size_t count[2]={count_val,count_val};
+    if ((retval = nc_get_vara_float(ncid, varid,start,count, data_in)))
+        ERR(retval);
+   
+    imprimir(NX, NY, "data_in_img.png", data_in, 3832);
+
+    /**
+     * Convolucion
+     * */
+    float kernel[3][3] = {{-1,-1,-1},{-1,8,-1},{-1,-1,-1}};
+    float *convolution = malloc((NX-2) * (NY-2) * sizeof(float));
+    
+    convolution_function(data_in,kernel,num_threads);
 
     imprimir(NX-2, NY-2, "convolution_img.png", convolution, 5743);
     
     /* Se cierra el archivo y liberan los recursos*/
     if ((retval = nc_close(ncid)))
-        ERR(retval);  
+        ERR(retval);
+    
+	//ProfilerStop();
+	/*
+	 *Guardando tiempos de ejecucion
+	*/
+	// FILE* f = fopen("tiempos.txt","a");
+	// if(!f){
+	// 	printf("Error abriendo archivo para escritura\n");
+	// 	return 1;
+	// }
+	// if(fprintf(f, "%d %f\n",num_threads, time) < 0){
+	// 	printf("Error fwrite\n");
+	// 	fclose(f);
+	// 	return 1;
+	// }
+	// fclose(f);  
 
     return 0;
 }

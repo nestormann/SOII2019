@@ -28,23 +28,13 @@ print h.dtype
 print h
 # plt.imshow(h)
 # plt.show()
+
 '''
-kleiner = np.array([[10,2,2,2,2],[2,10,2,2,2],[2,2,10,2,2],[2,2,2,10,2],[2,2,2,2,10]])
-print (kleiner)
-
 Convolucion
+'''
 
-g = signal.convolve2d(kleiner,w,boundary='fill',mode='same')
-h = convolve(kleiner,w)
-y = signal.convolve2d(kleiner,w,boundary='symm',mode='valid')
-print(g)
-print g.shape
-print(h)
-print h.shape
-print(y)
-print y.shape
-
+g = signal.convolve2d(kleiner,w,boundary='symm',mode='valid')
 y = g[10000:10200,10000:10200]
 print y.shape
 plt.imshow(y)
-plt.show()'''
+plt.show()
