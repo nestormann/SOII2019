@@ -1,0 +1,13 @@
+apt-get update
+apt-get dist-upgrade
+apt-get update
+apt-get dist-upgrade
+apt-get remove apache2
+apt-get install lighttpd
+/etc/init.d/lighttpd start
+******edicion********
+cd /var/www/index.lighttpd.html
+*********************
+******bootstrap******
+wget https://github.com/BlackrockDigital/startbootstrap-grayscale/archive/gh-pages.zip
+*********************
