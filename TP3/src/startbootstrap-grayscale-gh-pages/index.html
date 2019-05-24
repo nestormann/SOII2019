@@ -88,18 +88,14 @@
       <!-- Featured Project Row -->
       <div class="row align-items-center no-gutters mb-4 mb-lg-5">
         <div class="col-xl-8 col-lg-7">
-          <script>
-            function get_resources() {
-              <iframe src="../cgi-bin/cpu_info.cgi" width="500" height="500"></iframe>
-            }
-          </script>
+          <iframe src="./cpuInfo.cgi" width="500" height="500"></iframe>
         </div>
         <div class="col-xl-4 col-lg-5">
           <div class="featured-text text-center text-lg-left">
             <h4>Recursos del Sistema</h4>
             <p class="text-black-50 mb-0">A continuación se mostrarán los recursos del sistema:</p>
             <hr class="my-4">
-            <button type="submit" class="btn btn-primary mx-auto" onclick="get_resources()">update</button>
+            <button type="submit" class="btn btn-primary mx-auto" onclick="location.reload()">update</button>
           </div>
         </div>
       </div>
