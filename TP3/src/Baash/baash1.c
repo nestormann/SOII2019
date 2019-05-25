@@ -19,8 +19,9 @@
 
 int main(int argc, char* argv[]) {
 
-	int year = argv[1];
-	int day = argv[2];
-	printf("Año: %d , dia: %d",year,day);
+	char* readInput = strchr(getenv("QUERY_STRING"),'=')+1;
+	// int year = argv[1];
+	// int day = argv[2];
+	printf("readInput: %s",readInput);
 	return 0;
 }
