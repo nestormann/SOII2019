@@ -1,20 +1,11 @@
-targets = baash.cgi
-CC = gcc -Wall -pedantic
+all: baash.cgi
+	   
+baash.cgi: solution.o
+	gcc -pedantic -Wall -Werror -O3 -o baash.cgi solution.o
 
-.PHONY: all
-
-all: $(targets)
-
-baash.cgi: baash1.o baashSeek.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-main.o: baash1.c baash.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-practico1.o: baashSeek.c baash.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-.PHONY: clean
+solution.o: solution.c 
+	gcc -pedantic -Wall -Werror -c solution.c
 
 clean:
-	$(RM) $(targets) *.o
+	rm -f *.o baash.cgi
+
