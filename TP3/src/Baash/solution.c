@@ -19,6 +19,8 @@
 
 void path(char **argv);
 void busqueda(char **argv, char *input);
+void baash(char input[100],int argc, char** argv);
+
 int main(int argc, char** argv)
 {	
 	// char* readInput = strchr(getenv("QUERY_STRING"),'=')+1;
@@ -43,9 +45,25 @@ int main(int argc, char** argv)
 	char *command="aws s3 ls --recursive noaa-goes16/ABI-L2-CMIPF/";
 	char *flags="--no-sign-request | grep M3C13";
 
-	char input[255];		//Entrada de usuario
-	sprintf(input,"%s%s/%s/%s %s%c",command,year,day,"17",flags,'\0');
-	printf("Input: %s\n",input);
+	for (int hora = 0; hora < 24; hora++)
+	{	
+		char input[255];		//Entrada de usuario
+		if (hora<10)
+		{
+			sprintf(input,"%s%s/%s/0%d %s%c",command,year,day,hora,flags,'\0');
+		}
+		else
+		{
+			sprintf(input,"%s%s/%s/%d %s%c",command,year,day,hora,flags,'\0');
+		}
+		//printf("Input: %s",input);
+		baash(input,argc,argv);
+	}
+	return 0;
+}
+
+void baash(char input[100],int argc, char** argv)
+{
 	char *argvAux[10];		//Argv del primer comando
 	char *argvAux2[10];		//Argv del segundo comando (si es que lo hubiese)
 	char *token;			//Variable que toma elabones individuales del string 
@@ -55,14 +73,14 @@ int main(int argc, char** argv)
 	gethostname(host, 1024);
 	//char dirActual[100]; //Almacenamos el directorio actual 
 					
-	//printf(COLOR_GREEN"%s@%s%s:%s~%s%s$ ",user,host,COLOR_WHITE,COLOR_BLUE,getcwd(dirActual,100),COLOR_WHITE);
+		//printf(COLOR_GREEN"%s@%s%s:%s~%s%s$ ",user,host,COLOR_WHITE,COLOR_BLUE,getcwd(dirActual,100),COLOR_WHITE);
 
-	//fgets(input,75,argv[1]);	//Toma el ingreso del teclado y lo guarda en input
-	
-	// input[strlen(input)-1]='\0';	//Para eliminar el caracter agregado por el ENTER al ingresar por teclado
-	if(strlen(input)!=0)				
-	{
-
+		//fgets(input,75,argv[1]);	//Toma el ingreso del teclado y lo guarda en input
+		
+		// input[strlen(input)-1]='\0';	//Para eliminar el caracter agregado por el ENTER al ingresar por teclado
+		if(strlen(input)!=0)				
+		{
+		
 		char *waiter= strrchr(input,'&');	//Se utiliza para comprobar la existencia del &
 		char *barra= strrchr(input,'|'); 	//Se utiliza para comprobar la existencia del |
 		char *mayor= strrchr(input, '>');	//Se utiliza para comprobar la existencia del >
@@ -71,9 +89,9 @@ int main(int argc, char** argv)
 		if(waiter!=NULL) input[strlen(input)-2]='\0';	//Borra '&' del arreglo de entrada siempre y cuando aparezca
 
 		token= strtok(input, " ");	//Agrego en token el primer eslabon de la entrada
-
+		
 		int indexArg=0;		//Indice para recorrer el arreglo
-
+		
 		while(token != NULL)	//Mientras siga habiendo eslabones los voy agregando en el argv
 			{	
 
@@ -92,69 +110,68 @@ int main(int argc, char** argv)
 			else
 			chdir(home);
 		}
+	
+		else{
+		if(barra!=NULL || mayor!=NULL || menor!=NULL){
+			token= strtok(NULL, " ");	//elimino el caracter(sea |,< o >) y almaceno en el argv del segundo comando o archivo
+			indexArg=0;			
+			while(token != NULL)
+			{	
+				argvAux2[indexArg]=token;
+				indexArg++;
+				argc=indexArg;
+				token= strtok(NULL, " ");
+			}
+			argvAux2[indexArg]='\0';
+		}
+	
+		pid_t hijoPid;	//pid para el hijo
+
+		if((hijoPid = fork())<0)
+		{
+			perror("fork hijo");
+			exit(1);
+		}
+
+		else if(hijoPid==0){	//Codigo para el hijo
+		
+			if(barra==NULL){
+				if(mayor!=NULL) freopen(argvAux2[0],"w", stdout); //Para copiar la salida de un comando a un archivo
+				if(menor!=NULL)	freopen(argvAux2[0],"r",stdin); //Para hacer que un archivo sea entrada de un comando
+				busqueda(argvAux,input);
+			}	
+			
+			else{
+				pid_t nietoPid;	//pid para el nieto
+				int p[2];
+				pipe(p);
+				if((nietoPid = fork())<0)
+				{
+					perror("fork nieto");
+					exit(1);
+				}
+					
+				if(nietoPid==0){		//Codigo para el nieto
+					close(p[read]);
+					dup2(p[write],1);	//salida del nieto a entrada del hijo
+					busqueda(argvAux,input); 
+				}
+				else{
+					close(p[write]);
+					dup2(p[read],0);	
+					wait(&nietoPid);	//Hijo espera la ejecucion del nieto
+					busqueda(argvAux2,input);	
+				}
+			}
+		}
 
 		else
-		{
-			if(barra!=NULL || mayor!=NULL || menor!=NULL){
-				token= strtok(NULL, " ");	//elimino el caracter(sea |,< o >) y almaceno en el argv del segundo comando o archivo
-				indexArg=0;			
-				while(token != NULL)
-				{	
-					argvAux2[indexArg]=token;
-					indexArg++;
-					argc=indexArg;
-					token= strtok(NULL, " ");
-				}
-				argvAux2[indexArg]='\0';
-			}
-
-			pid_t hijoPid;	//pid para el hijo
-
-			if((hijoPid = fork())<0)
-			{
-				perror("fork hijo");
-				exit(1);
-			}
-
-			else if(hijoPid==0){	//Codigo para el hijo
-
-				if(barra==NULL){
-					if(mayor!=NULL) freopen(argvAux2[0],"w", stdout); //Para copiar la salida de un comando a un archivo
-					if(menor!=NULL)	freopen(argvAux2[0],"r",stdin); //Para hacer que un archivo sea entrada de un comando
-					busqueda(argvAux,input);
-				}	
-				
-				else{
-					pid_t nietoPid;	//pid para el nieto
-					int p[2];
-					pipe(p);
-					if((nietoPid = fork())<0)
-					{
-						perror("fork nieto");
-						exit(1);
-					}
-						
-					if(nietoPid==0){		//Codigo para el nieto
-						close(p[read]);
-						dup2(p[write],1);	//salida del nieto a entrada del hijo
-						busqueda(argvAux,input); 
-					}
-					else{
-						close(p[write]);
-						dup2(p[read],0);	
-						wait(&nietoPid);	//Hijo espera la ejecucion del nieto
-						busqueda(argvAux2,input);	
-					}
-				}
-			}
-
-			else
 			{
 				if(waiter==NULL || strlen(waiter)==0)
 				wait(&hijoPid);			//Padre espera la ejecucion del hijo
 			}			
-		}
 	}
+}
 }
 	
 
