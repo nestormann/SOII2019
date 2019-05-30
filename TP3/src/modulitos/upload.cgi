@@ -11,7 +11,7 @@ $CGI::DISABLE_UPLOADS = 0; #1 disables uploads, 0 enables uploads
  
 my $safe_filename_characters = "a-zA-Z0-9_.-";
 
-my $upload_dir = "/var/www/html/nestor/upload";
+my $upload_dir = "/var/www/html/nestor/uploads";
 
 my $query = new CGI; 
 my $filename = $query->param("modulo");
@@ -58,7 +58,7 @@ img {border: none;}
 </head>
 <body>
 <p>Thanks for uploading your photo!</p>
-<p>Your email address: $email_address</p>
+<p>Your email address: $email_address</p>s
 <p>Your photo:</p>
 <p><img src="/upload/$filename" alt="Photo" /></p>
 </body>
