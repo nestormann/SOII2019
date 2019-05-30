@@ -1,6 +1,6 @@
 targets = cpuInfo.cgi
 
-.PHONY: all
+.PHONY: -pedantic -Wall -Werror
 
 all: $(targets)
 
