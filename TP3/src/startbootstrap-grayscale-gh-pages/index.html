@@ -88,7 +88,7 @@
       <!-- Featured Project Row -->
       <div class="row align-items-center no-gutters mb-4 mb-lg-5">
         <div class="col-xl-8 col-lg-7">
-          <iframe src="./cpuInfo.cgi" width="500" height="500"></iframe>
+          <iframe src="./cgi-bin/cpuInfo.cgi" width="500" height="500"></iframe>
         </div>
         <div class="col-xl-4 col-lg-5">
           <div class="featured-text text-center text-lg-left">
@@ -99,7 +99,7 @@
           </div>
         </div>
       </div>
-
+      
     </div>
   </section>
 
@@ -112,11 +112,12 @@
           <i class="far fa-paper-plane fa-2x mb-2 text-white"></i>
           <h2 class="text-white mb-5">Ingrese el año y dia del que quiere obtener datos!</h2>
 
-          <form class="form-inline d-flex" method="get" action="./baash.cgi">
+          <form class="form-inline d-flex" method="get" target="baash-iframe">
             <input type="number" id="year" name="year" min="2017" max="2019" placeholder="Year">
             <input type="number" id="day" name="day" min="1" max="366" placeholder="Day">
             <button type="submit" class="btn btn-primary mx-auto" >get</button>
           </form>
+          <iframe name="baash-iframe" src="./cgi-bin/baash.cgi" width="700" height="500"></iframe>
 
         </div>
       </div>
@@ -130,18 +131,16 @@
         <!-- Featured Project Row -->
         <div class="row align-items-center no-gutters mb-4 mb-lg-5">
           <div class="col-xl-8 col-lg-7">
-            <img class="img-fluid mb-3 mb-lg-0" src="img/demo-image-01.jpg" alt="">
+            <iframe src="./cgi-bin/list_mod.cgi" width="500" height="500"></iframe>
           </div>
           <div class="col-xl-4 col-lg-5">
             <div class="featured-text text-center text-lg-left">
               <h4>Modulos del Sistema</h4>
               <p class="text-black-50 mb-0">A continuación se listarán los modulos instalados en el sistema:</p>
               <hr class="my-4">
-              <input type="file" class="btn btn-primary mx-auto" name="modulo">
-              <hr class="my-4">
-              <form class="form-inline d-flex">
-                <button type="button" class="btn btn-primary mx-auto">install</button>
-                <button type="button" class="btn btn-primary mx-auto">remove</button>
+              <form action="./cgi-bin/upload_mod.cgi" method="post" enctype="multipart/form-data" class="form-inline d-flex">
+                <input type="file" class="btn btn-primary mx-auto" name="modulo">
+                <button type="submit" class="btn btn-primary mx-auto">install</button>
               </form>
             </div>
           </div>
