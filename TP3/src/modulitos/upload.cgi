@@ -58,7 +58,6 @@ img {border: none;}
 </head>
 <body>
 <p>Thanks for uploading your photo!</p>
-<p>Your email address: $email_address</p>s
 <p>Your photo:</p>
 <p><img src="/upload/$filename" alt="Photo" /></p>
 </body>
