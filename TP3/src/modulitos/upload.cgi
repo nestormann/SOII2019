@@ -36,9 +36,9 @@ else
    die "Filename contains invalid characters"; 
 }
 
-if ($extension ne ".ko") {
-    error("Usted no ha ingresado un modulo correcto.");
-} 
+# if ($extension ne ".ko") {
+#     error("Usted no ha ingresado un modulo correcto.");
+# } 
 
 my $upload_filehandle = $query->upload("modulo");
 open ( UPLOADFILE, ">$upload_dir/$filename" ) or die "$!"; 
@@ -51,7 +51,7 @@ while ( <$upload_filehandle> )
 close UPLOADFILE;
 
 print $query->header ( );
-print "<p>'$filename' subido correctamente</p>";
+print "<p>'$filename' subido correctamente con extencion: $extension </p>";
 
 sub error {
    print $query->header(),
