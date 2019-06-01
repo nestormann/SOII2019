@@ -25,7 +25,8 @@ if ( !$filename )
 
 my ( $name, $path, $extension ) = fileparse ( $filename, '..*' ); 
 $filename = $name . $extension;
-$filename =~ tr/ /_/; $filename =~ s/[^$safe_filename_characters]//g;
+$filename =~ tr/ /_/; 
+$filename =~ s/[^$safe_filename_characters]//g;
 if ( $filename =~ /^([$safe_filename_characters]+)$/ ) 
 { 
    $filename = $1; 
@@ -57,9 +58,7 @@ img {border: none;}
 </style>
 </head>
 <body>
-<p>Thanks for uploading your photo!</p>
-<p>Your photo:</p>
-<p><img src="/upload/$filename" alt="Photo" /></p>
+<p>'$filename' subido correctamente</p>
 </body>
 </html>
 END_HTML
