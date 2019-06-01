@@ -112,12 +112,12 @@
           <i class="far fa-paper-plane fa-2x mb-2 text-white"></i>
           <h2 class="text-white mb-5">Ingrese el año y dia del que quiere obtener datos!</h2>
 
-          <form class="form-inline d-flex" method="post" target="baash-iframe">
+          <form class="form-inline d-flex" method="post" target="baash-iframe" action="./cgi-bin/baash.cgi">
             <input type="number" id="year" name="year" min="2017" max="2019" placeholder="Year">
             <input type="number" id="day" name="day" min="1" max="366" placeholder="Day">
             <button type="submit" class="btn btn-primary mx-auto" >get</button>
           </form>
-          <iframe name="baash-iframe" src="./cgi-bin/baash.cgi" width="700" height="500"></iframe>
+          <iframe name="baash-iframe" width="700" height="500"></iframe>
 
         </div>
       </div>
@@ -138,9 +138,12 @@
               <h4>Modulos del Sistema</h4>
               <p class="text-black-50 mb-0">A continuación se listarán los modulos instalados en el sistema:</p>
               <hr class="my-4">
-              <form action="./cgi-bin/upload.cgi" method="post" enctype="multipart/form-data" class="form-inline d-flex">
+              <form target="mod-iframe" method="post" enctype="multipart/form-data" class="form-inline d-flex" action="./cgi-bin/upload.cgi">
                 <input type="file" class="btn btn-primary mx-auto" name="modulo">
+                <hr class="my-4">
                 <button type="submit" class="btn btn-primary mx-auto">upload file</button>
+                <hr class="my-4">
+                <iframe name="mod-iframe" width="700" height="70"></iframe>
               </form>
             </div>
           </div>

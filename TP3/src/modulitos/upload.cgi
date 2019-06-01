@@ -36,6 +36,10 @@ else
    die "Filename contains invalid characters"; 
 }
 
+if ($extension ne ".ko") {
+    error("Usted no ha ingresado un modulo correcto.");
+} 
+
 my $upload_filehandle = $query->upload("modulo");
 open ( UPLOADFILE, ">$upload_dir/$filename" ) or die "$!"; 
 binmode UPLOADFILE;
@@ -47,18 +51,12 @@ while ( <$upload_filehandle> )
 close UPLOADFILE;
 
 print $query->header ( );
-print <<END_HTML;
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Thanks!</title>
-<style type="text/css">
-img {border: none;}
-</style>
-</head>
-<body>
-<p>'$filename' subido correctamente</p>
-</body>
-</html>
-END_HTML
+print "<p>'$filename' subido correctamente</p>";
+
+sub error {
+   print $query->header(),
+         $query->start_html(-title=>'Error'),
+         shift,
+         $query->end_html;
+   exit(0);
+}
