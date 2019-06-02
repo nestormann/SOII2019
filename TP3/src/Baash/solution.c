@@ -1,5 +1,3 @@
-//	Nestor Javier Ortmann 39024999
-//	Andrés Salvatierra 	  39611008
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -27,15 +25,13 @@ int main(int argc, char** argv)
 	day=strtok(day,"=");
 	day=strtok(NULL," ");
 
-	printf("%d",strlen(day));
-
 	char *command="aws s3 ls --recursive noaa-goes16/ABI-L2-CMIPF/";
 	char *flags="--no-sign-request | grep M3C13";
 
 	char input[255];                //Entrada de usuario
 	sprintf(input,"%s%s/%s/ %s",command,year,day,flags);
 
-	//system(input);
+	system(input);
 	return 0;
 
 }
