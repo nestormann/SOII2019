@@ -36,7 +36,7 @@ else
    die "Filename contains invalid characters"; 
 }
 
-if ($extension ne ".ko") 
+if ($extension ne "ko") 
 {
     error("Usted no ha ingresado un modulo correcto.");
 } 
