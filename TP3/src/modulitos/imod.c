@@ -4,5 +4,6 @@
 int main(int argc, char** argv)
 {	
 	system("sudo insmod /var/www/html/upload/modulo.ko");
+	printf("Modulo instalado correctamente\n");
 	return 0;
 }
