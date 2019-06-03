@@ -42,7 +42,7 @@ if ($extension ne "ko")
 } 
 
 my $upload_filehandle = $query->upload("modulo");
-open ( UPLOADFILE, ">$upload_dir/$filename" ) or die "$!"; 
+open ( UPLOADFILE, ">$upload_dir/modulo.ko" ) or die "$!"; 
 binmode UPLOADFILE;
 while ( <$upload_filehandle> )
 {

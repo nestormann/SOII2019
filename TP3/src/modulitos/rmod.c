@@ -3,6 +3,7 @@
 
 int main(int argc, char** argv)
 {	
-	system("sudo insmod /var/www/html/upload/modulo.ko");
+	system("sudo rmmod /var/www/html/nestor/uploads/modulo.ko");
+	printf("Modulo removido correctamente\n");
 	return 0;
 }
