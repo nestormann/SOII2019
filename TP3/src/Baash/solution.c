@@ -27,8 +27,11 @@ int main(int argc, char** argv)
 
 	while(strlen(day)<3)
 	{
-		sprintf(day,"%s%s","0",day);
+		char aux[5];
+		sprintf(aux,"%s%s","0",day);
+		strcpy(day,aux);
 	}
+	printf("Day: %s Year: %s",day,year);
 
 	char *command="aws s3 ls --recursive noaa-goes16/ABI-L2-CMIPF/";
 	char *flags="--no-sign-request | grep M3C13";

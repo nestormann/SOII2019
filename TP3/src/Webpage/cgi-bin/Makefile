@@ -1,4 +1,4 @@
-targets = cpuInfo.cgi baash.cgi list_mod.cgi upload.cgi
+targets = cpuInfo.cgi baash.cgi list_mod.cgi upload.cgi imod.cgi rmod.cgi
 CFLAGS = -pedantic -Wall -Werror
 
 .PHONY: all
@@ -24,6 +24,18 @@ list_mod.cgi: list_mod.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 list_mod.o: ../../modulitos/list_mod.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+imod.cgi: imod.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+imod.o: ../../modulitos/imod.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+rmod.cgi: rmod.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+rmod.o: ../../modulitos/rmod.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 upload.cgi:
