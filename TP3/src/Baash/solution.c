@@ -25,7 +25,10 @@ int main(int argc, char** argv)
 	day=strtok(day,"=");
 	day=strtok(NULL," ");
 
-	printf("%zd\n",strlen(day));
+	while(strlen(day)<3)
+	{
+		sprintf(day,"%s%s","0",day);
+	}
 
 	char *command="aws s3 ls --recursive noaa-goes16/ABI-L2-CMIPF/";
 	char *flags="--no-sign-request | grep M3C13";
