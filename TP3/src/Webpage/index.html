@@ -112,7 +112,7 @@
           <i class="far fa-paper-plane fa-2x mb-2 text-white"></i>
           <h2 class="text-white mb-5">Ingrese el año y dia del que quiere obtener datos!</h2>
 
-          <form class="form-inline d-flex" method="get" target="baash-iframe" action="./cgi-bin/baash.cgi">
+          <form class="form-inline d-flex" method="get" target="baash-iframe" action="./cgi-bin/awsget.cgi">
             <input type="number" id="year" name="year" min="2017" max="2019" placeholder="Year">
             <input type="number" id="day" name="day" min="1" max="366" placeholder="Day">
             <button type="submit" class="btn btn-primary mx-auto" >get</button>
@@ -145,13 +145,11 @@
                 <hr class="my-4">
                 <iframe name="mod-iframe" width="700" height="70" frameborder="0" style="border:0"></iframe>
               </form>
-              <form class="form-inline d-flex">
-                <form target="imod-iframe" enctype="multipart/form-data" class="form-inline d-flex" action="./cgi-bin/imod.cgi">
-                  <button type="submit" class="btn btn-primary mx-auto">install</button>
-                </form>
-                <form target="imod-iframe" enctype="multipart/form-data" class="form-inline d-flex" action="./cgi-bin/rmod.cgi">
-                  <button type="submit" class="btn btn-primary mx-auto">remove</button>
-                </form>
+              <form target="imod-iframe" enctype="multipart/form-data" class="form-inline d-flex" action="./cgi-bin/imod.cgi">
+                <button type="submit" class="btn btn-primary mx-auto">install</button>
+              </form>
+              <form target="imod-iframe" enctype="multipart/form-data" class="form-inline d-flex" action="./cgi-bin/rmod.cgi">
+                <button type="submit" class="btn btn-primary mx-auto">remove</button>
               </form>
               <iframe name="imod-iframe" width="700" height="70" frameborder="0" style="border:0"></iframe>
             </div>

@@ -1,4 +1,4 @@
-targets = cpuInfo.cgi baash.cgi list_mod.cgi upload.cgi imod.cgi rmod.cgi
+targets = cpuInfo.cgi awsget.cgi list_mod.cgi upload.cgi imod.cgi rmod.cgi
 CFLAGS = -pedantic -Wall -Werror
 
 .PHONY: all
@@ -14,10 +14,10 @@ main.o: ../../CpuInfo/main.c ../../CpuInfo/practico1.h
 practico1.o: ../../CpuInfo/practico1.c ../../CpuInfo/practico1.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-baash.cgi: solution.o
+awsget.cgi: solution.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-solution.o: ../../Baash/solution.c
+solution.o: ../../awsget/solution.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 list_mod.cgi: list_mod.o
