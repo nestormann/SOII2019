@@ -51,6 +51,10 @@ while ( <$upload_filehandle> )
 
 close UPLOADFILE;
 
+open(my $fh, '>', 'filename.txt');
+print $fh "$filename";
+close $fh;
+
 print $query->header ( );
 print "<p>'$filename' subido correctamente</p>";
 
